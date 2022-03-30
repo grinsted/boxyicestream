@@ -37,8 +37,9 @@ def a(n, A, u, v, p, q):
     return (nu(eps, A, n) * inner(sym(my_grad(v)), eps) - my_div(v) * p + q * my_div(u)) * dx
 
 
-def cross_section(experiment=settings.control_experiment, **kwargs):
+def cross_section(**kwargs):
 
+    experiment = settings.control_experiment.copy()
     experiment.update(kwargs)
 
     domain_w = experiment["domain_size"][1]
@@ -47,6 +48,7 @@ def cross_section(experiment=settings.control_experiment, **kwargs):
     resolution_h = experiment["resolution"][2]
     icestream_width = experiment["icestream_width"]
     shearmargin_enhancement = experiment["shearmargin_enhancement"]
+    print("xxxxxxxxxxxxx", shearmargin_enhancement)
     A = experiment["A"]
     rho = experiment["rho"]
     n = experiment["n"]
@@ -95,7 +97,7 @@ def cross_section(experiment=settings.control_experiment, **kwargs):
     g = Constant((0, -cos(alpha) * gmag * rho, sin(alpha) * gmag * rho))  # grav vec
     L = inner(v, g) * dx
 
-    E_spatial = Expression("1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=icestream_width, sigma=1e3, E=shearmargin_enhancement, degree=2)
+    E_spatial = Expression("1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=icestream_width / 2, sigma=1e3, E=shearmargin_enhancement, degree=2)
 
     # https://bitbucket.org/fenics-project/dolfin/issues/252/function-assignment-failing-with-mixed
     p0 = interpolate(hydrostatic_pressure, P)
@@ -140,5 +142,3 @@ def cross_section(experiment=settings.control_experiment, **kwargs):
 
 if __name__ == "__main__":
     cross_section()
-    cross_section(name="wider_icestream", icestream_width=22e3)
-

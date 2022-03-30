@@ -6,7 +6,7 @@ GLOBAL SETTINGS FOR THE PROJECT
 
 # All of this will just be imported with *
 
-outputfolder = "../output/"
+outputfolder = "../output/" 
 
 
 control_experiment = {}
