@@ -37,17 +37,16 @@ def a(n, A, u, v, p, q):
     return (nu(eps, A, n) * inner(sym(my_grad(v)), eps) - my_div(v) * p + q * my_div(u)) * dx
 
 
-def cross_section(**kwargs):
-
-    experiment = settings.control_experiment.copy()
-    experiment.update(kwargs)
-
+def run_experiment(experiment):
+    print("Running 2d experiment: ", experiment["name"])
+    fname = settings.filename2d(experiment)
     domain_w = experiment["domain_size"][1]
     domain_h = experiment["domain_size"][2]
     resolution_w = experiment["resolution"][1]
     resolution_h = experiment["resolution"][2]
     icestream_width = experiment["icestream_width"]
     shearmargin_enhancement = experiment["shearmargin_enhancement"]
+    shearmargin_enhancement_pos = experiment["shearmargin_enhancement_pos"]
     print("xxxxxxxxxxxxx", shearmargin_enhancement)
     A = experiment["A"]
     rho = experiment["rho"]
@@ -81,7 +80,6 @@ def cross_section(**kwargs):
     side = lambda x, on_boundary: on_boundary and near(abs(x[0]), domain_w / 2)
     top = lambda x, on_boundary: on_boundary and near(x[1], domain_h)
     centerline = lambda x, on_boundary: on_boundary and near(x[0], 0)
-    anyboundary = lambda x, on_boundary: on_boundary
 
     hydrostatic_pressure = Expression("dpdz*(H-x[1])", H=domain_h, dpdz=rho * gmag / np.cos(alpha), degree=2)
 
@@ -97,7 +95,13 @@ def cross_section(**kwargs):
     g = Constant((0, -cos(alpha) * gmag * rho, sin(alpha) * gmag * rho))  # grav vec
     L = inner(v, g) * dx
 
-    E_spatial = Expression("1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=icestream_width / 2, sigma=1e3, E=shearmargin_enhancement, degree=2)
+    E_spatial = Expression(
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))",
+        pos=icestream_width / 2 + shearmargin_enhancement_pos,
+        sigma=1e3,
+        E=shearmargin_enhancement,
+        degree=2,
+    )
 
     # https://bitbucket.org/fenics-project/dolfin/issues/252/function-assignment-failing-with-mixed
     p0 = interpolate(hydrostatic_pressure, P)
@@ -122,10 +126,10 @@ def cross_section(**kwargs):
         prm["newton_solver"]["maximum_iterations"] = 100  # 100?
         prm["newton_solver"]["convergence_criterion"] = "incremental"
         # -------------------
-        prm["newton_solver"]["report"] = True
+        prm["newton_solver"]["report"] = False
         prm["newton_solver"]["error_on_nonconvergence"] = True
-        prm["newton_solver"]["krylov_solver"]["report"] = True
-        prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
+        prm["newton_solver"]["krylov_solver"]["report"] = False
+        prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = False
         prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
         prm["newton_solver"]["krylov_solver"]["error_on_nonconvergence"] = False
         # set_log_level(LogLevel.PROGRESS)
@@ -136,9 +140,10 @@ def cross_section(**kwargs):
 
     (usol, psol) = w.split(deepcopy=True)
 
-    fname = f"{settings.outputfolder}/2d_{experiment['name']}.h5"
+    print("saving to", fname)
     solution_io.save_solution(fname, mesh, usol, psol, experiment)
 
 
 if __name__ == "__main__":
-    cross_section()
+
+    run_experiment(settings.experiment())
