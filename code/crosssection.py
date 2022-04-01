@@ -5,54 +5,27 @@ import matplotlib.pyplot as plt
 
 import settings
 import solution_io
-
-
-def my_grad(u):
-    return as_matrix(((u[0].dx(0), u[0].dx(1), 0), (u[1].dx(0), u[1].dx(1), 0), (u[2].dx(0), u[2].dx(1), 0),))
-
-
-def my_div(u):
-    return u[0].dx(0) + u[1].dx(1)
-
-
-def strainrate(u):
-    return sym(my_grad(u))
-
-
-def I2(eps, p):
-    return np.power(inner(eps, eps), p)
-
-
-def nu(eps, A, n):
-    return A ** (-1.0 / n) * I2(eps, (1.0 - n) / (2.0 * n))
-
-
-def tau(u, A, n):
-    eps = strainrate(u)
-    return 2 * nu(eps, A, u) * eps
-
-
-def a(n, A, u, v, p, q):
-    eps = strainrate(u)
-    return (nu(eps, A, n) * inner(sym(my_grad(v)), eps) - my_div(v) * p + q * my_div(u)) * dx
+import ice_physics
 
 
 def run_experiment(experiment):
-    print("Running 2d experiment: ", experiment["name"])
+    print("\nRunning 2d experiment: ", experiment["name"])
     fname = settings.filename2d(experiment)
-    domain_w = experiment["domain_size"][1]
-    domain_h = experiment["domain_size"][2]
-    resolution_w = experiment["resolution"][1]
-    resolution_h = experiment["resolution"][2]
+    domain_w = experiment["domain_w"]
+    domain_h = experiment["domain_h"]
+    resolution_w = experiment["resolution_w"]
+    resolution_h = experiment["resolution_h"]
     icestream_width = experiment["icestream_width"]
     shearmargin_enhancement = experiment["shearmargin_enhancement"]
     shearmargin_enhancement_pos = experiment["shearmargin_enhancement_pos"]
-    print("xxxxxxxxxxxxx", shearmargin_enhancement)
     A = experiment["A"]
     rho = experiment["rho"]
     n = experiment["n"]
     gmag = experiment["gmag"]
     alpha = experiment["alpha"]
+    beta = experiment["weertman_beta"]
+
+    settings.print_experiment_highlights(experiment)
 
     Alin = A * 2.2e10  # Enhancement factor for linear viscious problem
 
@@ -60,6 +33,13 @@ def run_experiment(experiment):
         mesh = RectangleMesh(Point(0, 0), Point(+domain_w / 2, domain_h), resolution_w, resolution_h)
     else:
         mesh = RectangleMesh(Point(-domain_w / 2, 0), Point(+domain_w / 2, domain_h), resolution_w, resolution_h)
+
+    # for x in mesh.coordinates():
+    #    if abs(x[0]) < (2 * icestream_width):
+    #        # x[0] += -(sin((x[0]/icestream_width-1)*np.pi) * (icestream_width/6)
+    #        x[0] -= np.sin((x[0] / icestream_width - 1) * np.pi) * (icestream_width / 6)
+    # plot(mesh)
+    # plt.axis("auto")
 
     Uele = VectorElement("CG", mesh.ufl_cell(), degree=2, dim=3)
     Pele = FiniteElement("CG", mesh.ufl_cell(), 1)
@@ -77,14 +57,23 @@ def run_experiment(experiment):
     # Define BCs
     bottom_noslip = lambda x, on_boundary: on_boundary and near(x[1], 0) and (abs(x[0]) >= icestream_width / 2)
     bottom = lambda x, on_boundary: on_boundary and near(x[1], 0)
+
     side = lambda x, on_boundary: on_boundary and near(abs(x[0]), domain_w / 2)
     top = lambda x, on_boundary: on_boundary and near(x[1], domain_h)
     centerline = lambda x, on_boundary: on_boundary and near(x[0], 0)
 
+    class bottom_weertman(SubDomain):
+        def inside(self, x, on_boundary):
+            return bottom(x, on_boundary) and not bottom_noslip(x, on_boundary)
+
+    boundaries = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+    boundaries.set_all(0)
+    bottom_weertman().mark(boundaries, 1)
+    ds = Measure("ds", domain=mesh, subdomain_data=boundaries)
+
     hydrostatic_pressure = Expression("dpdz*(H-x[1])", H=domain_h, dpdz=rho * gmag / np.cos(alpha), degree=2)
 
     bc = [DirichletBC(W.sub(1), Constant(0), top)]
-
     bc += [DirichletBC(W.sub(0).sub(0), Constant(0), bottom_noslip)]
     bc += [DirichletBC(W.sub(0).sub(2), Constant(0), bottom_noslip)]
     bc += [DirichletBC(W.sub(0).sub(1), Constant(0), bottom)]
@@ -96,24 +85,32 @@ def run_experiment(experiment):
     L = inner(v, g) * dx
 
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))",
-        pos=icestream_width / 2 + shearmargin_enhancement_pos,
-        sigma=1e3,
-        E=shearmargin_enhancement,
-        degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=2,
     )
+
+    def a_fun(n):
+        if n == 1:
+            AE = Alin * E_spatial
+        else:
+            AE = A * E_spatial
+        eps = ice_physics.strainrate2D(u)
+        tau = ice_physics.tau(eps, AE, n)
+        a = (inner(sym(ice_physics.grad2D(v)), tau) - ice_physics.div2D(v) * p + q * ice_physics.div2D(u)) * dx
+        a += beta * dot(v, u) * ds(1)
+        return a
+
+    # Weertman - linear in v
 
     # https://bitbucket.org/fenics-project/dolfin/issues/252/function-assignment-failing-with-mixed
     p0 = interpolate(hydrostatic_pressure, P)
     assign(w.sub(1), p0)
 
     solver_parameters = {"linear_solver": "mumps", "preconditioner": "petsc_amg"}
-    solve(a(1, Alin * E_spatial, u, v, p, q) == L, w, bc, solver_parameters=solver_parameters)
+    solve(a_fun(n=1) == L, w, bc, solver_parameters=solver_parameters)
     (usol_lin, psol_lin) = w.split(deepcopy=True)
 
     if n != 1:  # NLIN
-        print("NON-LINEAR SOLVE!")
-        F = a(n, A * E_spatial, u, v, p, q) - L
+        F = a_fun(n) - L
         R = action(F, w)
         DR = derivative(R, w)  # Gateaux derivative
         problem = NonlinearVariationalProblem(R, w, bc, DR)
@@ -140,10 +137,12 @@ def run_experiment(experiment):
 
     (usol, psol) = w.split(deepcopy=True)
 
-    print("saving to", fname)
+    print("saving to ", fname)
     solution_io.save_solution(fname, mesh, usol, psol, experiment)
+    return {"mesh": mesh, "u": usol, "p": psol, "experiment": experiment}
 
 
 if __name__ == "__main__":
 
-    run_experiment(settings.experiment())
+    results = run_experiment(settings.experiment())
+    print(results["u"](1000, 500))
