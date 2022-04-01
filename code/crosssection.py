@@ -34,10 +34,11 @@ def run_experiment(experiment):
     else:
         mesh = RectangleMesh(Point(-domain_w / 2, 0), Point(+domain_w / 2, domain_h), resolution_w, resolution_h)
 
-    # for x in mesh.coordinates():
-    #    if abs(x[0]) < (2 * icestream_width):
-    #        # x[0] += -(sin((x[0]/icestream_width-1)*np.pi) * (icestream_width/6)
-    #        x[0] -= np.sin((x[0] / icestream_width - 1) * np.pi) * (icestream_width / 6)
+    # mesh refinement.
+    for x in mesh.coordinates():
+        x[1] = (x[1] / domain_h) ** 1.8 * domain_h
+        if abs(x[0]) < (2 * icestream_width):
+            x[0] -= np.sin((x[0] / icestream_width - 1) * np.pi) * (icestream_width / 6)
     # plot(mesh)
     # plt.axis("auto")
 
@@ -53,6 +54,8 @@ def run_experiment(experiment):
     (u, p) = TrialFunctions(W)  # the unknowns
     (v, q) = TestFunctions(W)  # the weighting funcs
     w = Function(W)
+
+    near = lambda a, b: abs(a - b) < 0.1
 
     # Define BCs
     bottom_noslip = lambda x, on_boundary: on_boundary and near(x[1], 0) and (abs(x[0]) >= icestream_width / 2)
