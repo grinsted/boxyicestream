@@ -37,8 +37,9 @@ def run_experiment(experiment):
     # mesh refinement.
     for x in mesh.coordinates():
         x[1] = (x[1] / domain_h) ** 1.8 * domain_h
-        if abs(x[0]) < (2 * icestream_width):
-            x[0] -= np.sin((x[0] / icestream_width - 1) * np.pi) * (icestream_width / 6)
+        if abs(x[0]) < (icestream_width):
+            x[0] += np.sin((x[0] / icestream_width - 1) * 2 * np.pi) * (icestream_width / 10)
+
     # plot(mesh)
     # plt.axis("auto")
 
