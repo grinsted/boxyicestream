@@ -36,13 +36,16 @@ def run_experiment(experiment):
 
     # mesh refinement.
     for x in mesh.coordinates():
-        x[1] = (x[1] / domain_h) ** 1.8 * domain_h
-        if abs(x[0]) < (icestream_width):
-            x[0] += np.sin((x[0] / icestream_width - 1) * 2 * np.pi) * (icestream_width / 10)
+        x[1] = (x[1] / domain_h) ** 1.7 * domain_h
+        amp = icestream_width / 10
+        if abs(x[0]) < (icestream_width * 0.75):
+            x[0] += np.sin((x[0] / icestream_width - 1) * 2 * np.pi) * amp
+        else:
+            x[0] += (abs(x[0]) - domain_w / 2) / ((domain_w / 2 - icestream_width * 0.75)) * amp
 
     # plot(mesh)
     # plt.axis("auto")
-
+    # return
     Uele = VectorElement("CG", mesh.ufl_cell(), degree=2, dim=3)
     Pele = FiniteElement("CG", mesh.ufl_cell(), 1)
 
@@ -89,16 +92,17 @@ def run_experiment(experiment):
     L = inner(v, g) * dx
 
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=2e3, E=shearmargin_enhancement, degree=2,
     )
 
     def a_fun(n):
         if n == 1:
-            AE = Alin * E_spatial
+            AA = Alin# * E_spatial
         else:
-            AE = A * E_spatial
+            AA = A# * E_spatial
         eps = ice_physics.strainrate2D(u)
-        tau = ice_physics.tau(eps, AE, n)
+        #tau = ice_physics.tau(eps, AA * E_spatial, n)
+        tau = ice_physics.tau_orthotropic(eps, AA, n, 1, 1, 1, 1, E_spatial, 1)
         a = (inner(sym(ice_physics.grad2D(v)), tau) - ice_physics.div2D(v) * p + q * ice_physics.div2D(u)) * dx
         a += beta * dot(v, u) * ds(1)
         return a
@@ -147,6 +151,10 @@ def run_experiment(experiment):
 
 
 if __name__ == "__main__":
-
     results = run_experiment(settings.experiment())
-    print(results["u"](1000, 500))
+    usol = results['u']
+    vfun = usol.sub(2)*yr2sec
+    h=plot(vfun)
+    plt.colorbar(h)
+    plot(results['mesh'],linewidth=0.5,color='k',alpha=0.7)
+    plt.axis('auto');

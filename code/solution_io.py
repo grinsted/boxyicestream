@@ -9,8 +9,9 @@ def save_solution(fname, mesh, usol, psol, experiment={}):
         hdf.write(mesh, "/mesh")
         hdf.write(usol, "/usol")
         hdf.write(psol, "/psol")
-        att = hdf.attributes("/mesh")
-        att["experiment"] = str(experiment)
+        hdf.attributes("/mesh")["experiment"] = str(experiment)
+        hdf.attributes("/usol")["function_space"] = str(usol.function_space())
+        hdf.attributes("/psol")["function_space"] = str(psol.function_space())
 
 
 def load_solution(fname):

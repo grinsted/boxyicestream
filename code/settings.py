@@ -28,15 +28,15 @@ def experiment(**kwargs):
     ex["alpha"] = 0.003  # angle of inclined plane  (600m/200km ~3permil)
     ex["rho"] = 917
     ex["domain_l"] = 400e3
-    ex["domain_w"] = 100e3
-    ex["domain_h"] = 1000
+    ex["domain_w"] = 150e3
+    ex["domain_h"] = 2000
     ex["resolution_l"] = 30
     ex["resolution_w"] = 40
     ex["resolution_h"] = 8
     ex["model_half"] = True  # exploit y-symmetry.
-    ex["icestream_width"] = 20e3
-    ex["shearmargin_enhancement"] = 0
-    ex["shearmargin_enhancement_pos"] = 0
+    ex["icestream_width"] = 50e3
+    ex["shearmargin_enhancement"] = 9
+    ex["shearmargin_enhancement_pos"] = 23000
     ex["weertman_beta"] = 100e3 / (100 / (365 * 24 * 3600))
     ex.update(kwargs)
     return ex

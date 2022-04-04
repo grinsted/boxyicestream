@@ -26,7 +26,7 @@ def tau(eps, A, n):
 
 
 ### Orthotropic flow law (Rathmann and Lilien, 2022)
-def tau_orthotropic(eps_3D, A, n, Exx, Eyy, Ezz, Exy, Exz, Eyz):
+def tau_orthotropic(eps_3D, A, n, E11, E22, E33, E12, E13, E23):
 
     # eps_3D:   strain-rate tensor in 3D
     # A:        Rate factor
@@ -67,7 +67,7 @@ def tau_orthotropic(eps_3D, A, n, Exx, Eyy, Ezz, Exy, Exz, Eyz):
     lam2 = 4 / 3 * (E33 ** nn + E11 ** nn - E22 ** nn)
     lam3 = 4 / 3 * (E11 ** nn + E22 ** nn - E33 ** nn)
     lam4 = 2 * E23 ** nn
-    lam5 = 2 * E31 ** nn
+    lam5 = 2 * E13 ** nn
     lam6 = 2 * E12 ** nn
 
     # Construct flow law
