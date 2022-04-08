@@ -23,7 +23,7 @@ def run_experiment(experiment):
     n = experiment["n"]
     gmag = experiment["gmag"]
     alpha = experiment["alpha"]
-    beta = experiment["weertman_beta"]
+    beta2 = experiment["weertman_beta2"]
 
     settings.print_experiment_highlights(experiment)
 
@@ -92,19 +92,20 @@ def run_experiment(experiment):
     L = inner(v, g) * dx
 
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=2e3, E=shearmargin_enhancement, degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=2,
     )
 
     def a_fun(n):
         if n == 1:
-            AA = Alin# * E_spatial
+            AA = Alin  # * E_spatial
         else:
-            AA = A# * E_spatial
+            AA = A  # * E_spatial
         eps = ice_physics.strainrate2D(u)
-        #tau = ice_physics.tau(eps, AA * E_spatial, n)
-        tau = ice_physics.tau_orthotropic(eps, AA, n, 1, 1, 1, 1, E_spatial, 1)
+        tau = ice_physics.tau(eps, AA * E_spatial, n)
+        # tau = ice_physics.tau_orthotropic(eps, AA, n, 1, 1, 1, 1, E_spatial, 1)
+        # tau = ice_physics.tau(eps, AA, n)
         a = (inner(sym(ice_physics.grad2D(v)), tau) - ice_physics.div2D(v) * p + q * ice_physics.div2D(u)) * dx
-        a += beta * dot(v, u) * ds(1)
+        a += beta2 * dot(v, u) * ds(1)
         return a
 
     # Weertman - linear in v
@@ -152,9 +153,11 @@ def run_experiment(experiment):
 
 if __name__ == "__main__":
     results = run_experiment(settings.experiment())
-    usol = results['u']
-    vfun = usol.sub(2)*yr2sec
-    h=plot(vfun)
+    usol = results["u"]
+    yr2sec = 365.25 * 24 * 3600
+    vfun = usol.sub(2) * yr2sec
+    h = plot(vfun)
     plt.colorbar(h)
-    plot(results['mesh'],linewidth=0.5,color='k',alpha=0.7)
-    plt.axis('auto');
+    plot(results["mesh"], linewidth=0.5, color="k", alpha=0.7)
+    plt.axis("auto")
+    plt.savefig("../demofig.png")

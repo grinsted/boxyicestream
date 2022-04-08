@@ -20,9 +20,15 @@ def strainrate(u):
 
 
 def tau(eps, A, n):
-    I2 = np.power(inner(eps, eps), (1.0 - n) / (2.0 * n))
-    nu = A ** (-1.0 / n) * I2
-    return nu * eps
+    eps_e = sqrt(0.5 * inner(eps, eps))  # greve 4.18
+    B = A ** (-1.0 / n)  # definition of B
+    eta = 0.5 * B * eps_e ** (1.0 / n - 1.0)  # greve 4.22
+    return 2 * eta * eps  # greve 4.21
+
+
+#    I2 = np.power(inner(eps, eps), (1.0 - n) / (2.0 * n))
+#    nu = A ** (-1.0 / n) * I2
+#    return nu * eps
 
 
 ### Orthotropic flow law (Rathmann and Lilien, 2022)
@@ -79,7 +85,7 @@ def tau_orthotropic(eps_3D, A, n, E11, E22, E33, E12, E13, E23):
         1
         / 2
         * A ** (-1 / n)
-        * (1 / gamma * (lam1 * J1 ** 2 + lam2 * J2 ** 2 + lam3 * J3 ** 2) + 4 * (J4 ** 2 / lam4 + J5 ** 2 / lam5 + J6 ** 2 / lam6))
+        * (0.5*(1 / gamma * (lam1 * J1 ** 2 + lam2 * J2 ** 2 + lam3 * J3 ** 2) + 4 * (J4 ** 2 / lam4 + J5 ** 2 / lam5 + J6 ** 2 / lam6)))
         ** ((1 - n) / (2 * n))
     )
 
