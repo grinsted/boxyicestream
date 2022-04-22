@@ -18,6 +18,7 @@ def run_experiment(experiment):
     icestream_width = experiment["icestream_width"]
     shearmargin_enhancement = experiment["shearmargin_enhancement"]
     shearmargin_enhancement_pos = experiment["shearmargin_enhancement_pos"]
+    shearmargin_enhancement_sigma = experiment["shearmargin_enhancement_sigma"]
     A = experiment["A"]
     rho = experiment["rho"]
     n = experiment["n"]
@@ -41,7 +42,7 @@ def run_experiment(experiment):
         if abs(x[0]) < (icestream_width * 0.75):
             x[0] += np.sin((x[0] / icestream_width - 1) * 2 * np.pi) * amp
         else:
-            x[0] += (abs(x[0]) - domain_w / 2) / ((domain_w / 2 - icestream_width * 0.75)) * amp
+            x[0] += np.sign(x[0])*(abs(x[0]) - domain_w / 2) / ((domain_w / 2 - icestream_width * 0.75)) * amp
 
     # plot(mesh)
     # plt.axis("auto")
@@ -92,7 +93,7 @@ def run_experiment(experiment):
     L = inner(v, g) * dx
 
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=shearmargin_enhancement_sigma, E=shearmargin_enhancement, degree=2,
     )
 
     def a_fun(n):
@@ -152,7 +153,9 @@ def run_experiment(experiment):
 
 
 if __name__ == "__main__":
-    results = run_experiment(settings.experiment())
+    import matplotlib.pyplot as plt
+
+    results = run_experiment(settings.experiment(model_half=False))
     usol = results["u"]
     yr2sec = 365.25 * 24 * 3600
     vfun = usol.sub(2) * yr2sec
@@ -160,4 +163,5 @@ if __name__ == "__main__":
     plt.colorbar(h)
     plot(results["mesh"], linewidth=0.5, color="k", alpha=0.7)
     plt.axis("auto")
+    plt.savefig("/mnt/c/users/ag/demofig.svg")
     plt.savefig("../demofig.png")

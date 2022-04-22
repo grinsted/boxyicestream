@@ -22,7 +22,7 @@ def strainrate(u):
 def tau(eps, A, n):
     eps_e = sqrt(0.5 * inner(eps, eps))  # greve 4.18
     B = A ** (-1.0 / n)  # definition of B
-    eta = 0.5 * B * eps_e ** (1.0 / n - 1.0)  # greve 4.22
+    eta = 0.5 * B * eps_e ** (1.0 / n - 1.0)  # greve 4.22   
     return 2 * eta * eps  # greve 4.21
 
 
@@ -92,3 +92,6 @@ def tau_orthotropic(eps_3D, A, n, E11, E22, E33, E12, E13, E23):
     tau_3D = 2 * viscosity * tensorialpart
 
     return tau_3D
+
+
+

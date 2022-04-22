@@ -88,13 +88,8 @@ def run_experiment(experiment):
     (v, q) = TestFunctions(W)  # the weighting funcs
     w = Function(W)
 
-    e_x = Expression(("1.0", "0.0", "0.0"), element=Uele)
-    e_y = Expression(("0.0", "1.0", "0.0"), element=Uele)
-    e_z = Expression(("0.0", "0.0", "1.0"), element=Uele)
-
-    # %%
     # SETUP BCs, L, and a
-    #BCs
+    # BCs
     near = lambda a, b: abs(a - b) < 0.1
     bottom_noslip = lambda x, on_boundary: on_boundary and near(x[2], 0) and (abs(x[1]) >= icestream_width / 2)
     bottom = lambda x, on_boundary: on_boundary and near(x[2], 0)
@@ -107,7 +102,7 @@ def run_experiment(experiment):
     class bottom_weertman(SubDomain):
         def inside(self, x, on_boundary):
             return bottom(x, on_boundary) and not bottom_noslip(x, on_boundary)
-    
+
     boundaries = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
     boundaries.set_all(0)
     bottom_weertman().mark(boundaries, 1)
@@ -115,8 +110,6 @@ def run_experiment(experiment):
 
     hydrostatic_pressure = Expression("dpdz*(H-x[2])", H=domain_h, dpdz=rho * gmag / np.cos(alpha), degree=2)
     # set pressure at front boundary to 2d solution
-
-
 
     bc = [DirichletBC(W.sub(1), Constant(0), top)]
     bc += [DirichletBC(W.sub(0).sub(0), Constant(0), bottom_noslip)]
@@ -129,10 +122,10 @@ def run_experiment(experiment):
 
     # bc += [DirichletBC(W.sub(0).sub(1), Constant(0), front)]
     # bc += [DirichletBC(W.sub(0).sub(2), Constant(0), front)]
-    #bc += [DirichletBC(W.sub(1), hydrostatic_pressure, icedivide)]
-    #bc += [DirichletBC(W.sub(1), hydrostatic_pressure, front)]
-    #bc += [DirichletBC(W.sub(1), pressure2d(degree=2), front)]
-    #bc += [DirichletBC(W.sub(0), vel2d(degree=2), front)]
+    # bc += [DirichletBC(W.sub(1), hydrostatic_pressure, icedivide)]
+    # bc += [DirichletBC(W.sub(1), hydrostatic_pressure, front)]
+    # bc += [DirichletBC(W.sub(1), pressure2d(degree=2), front)]
+    # bc += [DirichletBC(W.sub(0), vel2d(degree=2), front)]
 
     # https://bitbucket.org/fenics-project/dolfin/issues/252/function-assignment-failing-with-mixed
     p0 = interpolate(hydrostatic_pressure, P)
@@ -141,26 +134,25 @@ def run_experiment(experiment):
         v0 = interpolate(vel2d(degree=2), U)
         assign(w.sub(0), v0)
 
-
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[1]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[1]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=1e3, E=shearmargin_enhancement, degree=1,
     )
-    q_degree = 7
-    dx = dx(metadata={'quadrature_degree': q_degree})
-    print(f'WARNING: Setting quadrature degree to {q_degree}')
-    
+    # q_degree = 7
+    # dx = dx(metadata={'quadrature_degree': q_degree})
+    # print(f'WARNING: Setting quadrature degree to {q_degree}')
+
     def a_fun(n):
         if n == 1:
-            AA = A * 2.2e10  
+            AA = A * (rho * gmag * domain_h * alpha) ** (3 - 1)
         else:
-            AA = A  
+            AA = A
         eps = ice_physics.strainrate(u)
-        #tau = ice_physics.tau(eps, AA * E_spatial, n)
-        if icestream_Exx!=1:
-            Exx = Expression("1+(Exx-1)./(1+exp(-((iw -abs(x')))/1e3))",iw=icestream_width,Exx=icestream_Exx)
+        # tau = ice_physics.tau(eps, AA * E_spatial, n)
+        # if icestream_Exx != 1:
+        Exx = Expression("1+(Exx-1)/(1+exp(-((iw/2-abs(x[0])))/1e3))", iw=icestream_width, Exx=icestream_Exx, degree=1)
         tau = ice_physics.tau_orthotropic(eps, AA, n, Exx, 1, 1, E_spatial, 1, 1)
         a = (inner(sym(grad(v)), tau) - div(v) * p + q * div(u)) * dx
-        a += beta * dot(v, u) * ds(1)
+        a += beta2 * dot(v, u) * ds(1)
         return a
 
     g = Constant((sin(alpha) * gmag * rho, 0, -cos(alpha) * gmag * rho))  # grav vec
@@ -170,7 +162,7 @@ def run_experiment(experiment):
 
     solver_parameters = {"linear_solver": "mumps", "preconditioner": "petsc_amg"}
     solve(a_fun(n=1) == L, w, bc, solver_parameters=solver_parameters)
-    
+
     if n != 1:  # NLIN
         print("NON-LINEAR SOLVE!")
         F = a_fun(n) - L
@@ -201,6 +193,7 @@ def run_experiment(experiment):
 
     print("saving to", fname)
     solution_io.save_solution(fname, mesh, usol, psol, experiment)
+
     return {"mesh": mesh, "u": usol, "p": psol, "experiment": experiment}
 
 
@@ -214,6 +207,3 @@ if __name__ == "__main__":
     plot(results["mesh"], linewidth=0.5, color="k", alpha=0.7)
     plt.axis("auto")
     plt.savefig("../demofig.png")
-
-
-# %%

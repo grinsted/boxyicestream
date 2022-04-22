@@ -36,8 +36,9 @@ def experiment(**kwargs):
     ex["model_half"] = True  # exploit y-symmetry.
     ex["icestream_width"] = 50e3
     ex["shearmargin_enhancement"] = 4
-    ex["shearmargin_enhancement_pos"] = 25000
-    ex["weertman_beta2"] = 20e3 / (100 / (365 * 24 * 3600))
+    ex["shearmargin_enhancement_pos"] = 24000
+    ex["shearmargin_enhancement_sigma"] = 2e3
+    ex["weertman_beta2"] = 100e3 / (100 / (365 * 24 * 3600))
     ex["icestream_Exx"] = 1  # only used in 3d experiment
     ex.update(kwargs)
     return ex
@@ -51,7 +52,8 @@ def print_experiment_highlights(exp1):
 
 experiments = []
 experiments += [experiment()]
-experiments += [experiment(name="wider_icestream", icestream_width=50100)]
-experiments += [experiment(name="softer_margin_1", shearmargin_enhancement=5)]
-experiments += [experiment(name="softer_margin_2", shearmargin_enhancement_pos=25100)]
-experiments += [experiment(name="thicker_icestream", domain_h=2010)]
+experiments += [experiment(name="wider_slip", icestream_width=50100)]
+experiments += [experiment(name="softer_margin", shearmargin_enhancement=4.2)]
+experiments += [experiment(name="soft_margin_pos", shearmargin_enhancement_pos=24100)]
+experiments += [experiment(name="wider_soft_margin", shearmargin_enhancement_sigma=2.1e3)]
+experiments += [experiment(name="thicker", domain_h=2010)]
