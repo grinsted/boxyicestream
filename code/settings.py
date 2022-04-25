@@ -32,7 +32,7 @@ def experiment(**kwargs):
     ex["domain_h"] = 2000
     ex["resolution_l"] = 30
     ex["resolution_w"] = 50
-    ex["resolution_h"] = 8
+    ex["resolution_h"] = 15
     ex["model_half"] = True  # exploit y-symmetry.
     ex["icestream_width"] = 50e3
     ex["shearmargin_enhancement"] = 4
@@ -40,6 +40,7 @@ def experiment(**kwargs):
     ex["shearmargin_enhancement_sigma"] = 2e3
     ex["weertman_beta2"] = 100e3 / (100 / (365 * 24 * 3600))
     ex["icestream_Exx"] = 1  # only used in 3d experiment
+    ex["anisotropic"] = False  # only used in 3d experiment
     ex.update(kwargs)
     return ex
 

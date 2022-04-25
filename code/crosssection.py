@@ -25,6 +25,7 @@ def run_experiment(experiment):
     gmag = experiment["gmag"]
     alpha = experiment["alpha"]
     beta2 = experiment["weertman_beta2"]
+    anisotropic = experiment["anisotropic"]
 
     settings.print_experiment_highlights(experiment)
 
@@ -42,7 +43,7 @@ def run_experiment(experiment):
         if abs(x[0]) < (icestream_width * 0.75):
             x[0] += np.sin((x[0] / icestream_width - 1) * 2 * np.pi) * amp
         else:
-            x[0] += np.sign(x[0])*(abs(x[0]) - domain_w / 2) / ((domain_w / 2 - icestream_width * 0.75)) * amp
+            x[0] += np.sign(x[0]) * (abs(x[0]) - domain_w / 2) / ((domain_w / 2 - icestream_width * 0.75)) * amp
 
     # plot(mesh)
     # plt.axis("auto")
@@ -93,7 +94,11 @@ def run_experiment(experiment):
     L = inner(v, g) * dx
 
     E_spatial = Expression(
-        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))", pos=shearmargin_enhancement_pos, sigma=shearmargin_enhancement_sigma, E=shearmargin_enhancement, degree=2,
+        "1+E*exp(-0.5*pow((pos-abs(x[0]))/sigma,2))",
+        pos=shearmargin_enhancement_pos,
+        sigma=shearmargin_enhancement_sigma,
+        E=shearmargin_enhancement,
+        degree=2,
     )
 
     def a_fun(n):
@@ -102,8 +107,10 @@ def run_experiment(experiment):
         else:
             AA = A  # * E_spatial
         eps = ice_physics.strainrate2D(u)
-        tau = ice_physics.tau(eps, AA * E_spatial, n)
-        # tau = ice_physics.tau_orthotropic(eps, AA, n, 1, 1, 1, 1, E_spatial, 1)
+        if anisotropic:
+            tau = ice_physics.tau_orthotropic(eps, AA, n, 1, 1, 1, 1, E_spatial, 1)
+        else:
+            tau = ice_physics.tau(eps, AA * E_spatial, n)
         # tau = ice_physics.tau(eps, AA, n)
         a = (inner(sym(ice_physics.grad2D(v)), tau) - ice_physics.div2D(v) * p + q * ice_physics.div2D(u)) * dx
         a += beta2 * dot(v, u) * ds(1)
