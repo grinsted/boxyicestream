@@ -27,6 +27,7 @@ def run_experiment(experiment):
     beta2 = experiment["weertman_beta2"]
     anisotropic = experiment["anisotropic"]
 
+
     settings.print_experiment_highlights(experiment)
 
     Alin = A * 2.2e10  # Enhancement factor for linear viscious problem
