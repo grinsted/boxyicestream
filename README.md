@@ -17,7 +17,7 @@ Affiliations:
 3. Geological Survey of Denmark and Greenland; Copenhagen, Denmark
 4. Oceans Graduate School, The University of Western Australia; Perth, Australia
 
-It relies on fenics version 2019.1.0
+It relies on fenics version 2019.1.0. The supplement to the paper has detailed info of the model experiments done. 
 
 ![half of an icestream](/demofig.png)
 
