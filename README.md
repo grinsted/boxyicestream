@@ -1,8 +1,7 @@
-# boxyicestream
-A very idealized icestream. 
+# boxyicestream - a very idealized icestream. 
 
 
-![Sketch](/model_sketch.svg)
+
 
 
 This repo contains modelling code for the paper:
@@ -18,6 +17,8 @@ Affiliations:
 4. Oceans Graduate School, The University of Western Australia; Perth, Australia
 
 It relies on fenics version 2019.1.0. The supplement to the paper has detailed info of the model experiments. 
+
+![Sketch](/model_sketch.svg)
 
 ![half of an icestream](/demofig.png)
 
